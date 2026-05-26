@@ -4,21 +4,20 @@
 
 require("dotenv").config();
 
-const express    = require("express");
-const bcrypt     = require("bcrypt");
-const jwt        = require("jsonwebtoken");
-const cors       = require("cors");
-const path       = require("path");
-const crypto     = require("crypto");
+const express = require("express");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
+const path = require("path");
+const crypto = require("crypto");
 const { PythonShell } = require("python-shell");
 
-const { db } = require("./firebase");
-console.log("Firebase cargado:", !!db);
+const { db } = require("./firebase"); // ✅ FIX IMPORT
 
 const app = express();
 
 //////////////////////////////////////////////////////////
-// MIDDLEWARES
+// MIDDLEWARE
 //////////////////////////////////////////////////////////
 
 app.use(cors());
@@ -28,27 +27,29 @@ app.use(express.json());
 // DEBUG
 //////////////////////////////////////////////////////////
 
-console.log("INICIANDO SERVER...");
-console.log("DIRECTORIO:", __dirname);
+console.log("SERVER INICIADO");
+console.log("JWT:", process.env.JWT_SECRET ? "OK" : "MISSING");
+console.log("FIREBASE:", !!process.env.FIREBASE_PRIVATE_KEY);
 
 //////////////////////////////////////////////////////////
-// JWT
+// AUTH MIDDLEWARE
 //////////////////////////////////////////////////////////
 
 function auth(req, res, next) {
+    const authHeader = req.headers.authorization;
 
-    const token = req.headers.authorization;
-
-    if (!token) {
+    if (!authHeader) {
         return res.status(401).json({ error: "No autorizado" });
     }
+
+    const token = authHeader.split(" ")[1];
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
-        console.log(err);
+        console.error("JWT ERROR:", err);
         return res.status(401).json({ error: "Token inválido" });
     }
 }
@@ -58,9 +59,7 @@ function auth(req, res, next) {
 //////////////////////////////////////////////////////////
 
 app.post("/register", async (req, res) => {
-    console.log("REGISTER HIT", req.body);
     try {
-
         const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
@@ -76,10 +75,7 @@ app.post("/register", async (req, res) => {
         }
 
         const hashed = await bcrypt.hash(password, 10);
-
-        const professionalCode =
-            "PRO-" + Math.floor(10000 + Math.random() * 90000);
-
+        const professionalCode = "PRO-" + Math.floor(10000 + Math.random() * 90000);
         const uid = crypto.randomUUID();
 
         await db.collection("professionals").doc(uid).set({
@@ -93,7 +89,7 @@ app.post("/register", async (req, res) => {
         res.json({ success: true, professionalCode });
 
     } catch (err) {
-        console.log("ERROR REGISTER:", err);
+        console.error("REGISTER ERROR:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -103,30 +99,24 @@ app.post("/register", async (req, res) => {
 //////////////////////////////////////////////////////////
 
 app.post("/login", async (req, res) => {
-    console.log("LOGIN HIT", req.body);
     try {
-
         const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: "Faltan datos" });
-        }
 
         const snap = await db.collection("professionals")
             .where("email", "==", email)
             .get();
 
         if (snap.empty) {
-            return res.status(400).json({ error: "Correo no registrado" });
+            return res.status(400).json({ error: "No existe usuario" });
         }
 
-        const doc   = snap.docs[0];
-        const data  = doc.data();
+        const doc = snap.docs[0];
+        const data = doc.data();
 
         const match = await bcrypt.compare(password, data.password);
 
         if (!match) {
-            return res.status(400).json({ error: "Contraseña incorrecta" });
+            return res.status(400).json({ error: "Password incorrecto" });
         }
 
         const token = jwt.sign(
@@ -137,41 +127,36 @@ app.post("/login", async (req, res) => {
 
         res.json({
             token,
-            professionalId:   doc.id,
-            name:             data.name,
+            professionalId: doc.id,
+            name: data.name,
             professionalCode: data.professionalCode
         });
 
     } catch (err) {
-        console.log("ERROR LOGIN:", err);
+        console.error("LOGIN ERROR:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
 //////////////////////////////////////////////////////////
-// PROFESSIONAL BY CODE
+// PROFESSIONAL
 //////////////////////////////////////////////////////////
 
 app.get("/professional/:code", async (req, res) => {
-    console.log("PROFESSIONAL HIT", req.params);
     try {
-
-        const { code } = req.params;
-
         const snap = await db.collection("professionals")
-            .where("professionalCode", "==", code)
+            .where("professionalCode", "==", req.params.code)
             .get();
 
         if (snap.empty) {
-            return res.status(404).json({ error: "Profesional no encontrado" });
+            return res.status(404).json({ error: "No encontrado" });
         }
 
         const doc = snap.docs[0];
-
         res.json({ id: doc.id, ...doc.data() });
 
     } catch (err) {
-        console.log("ERROR PROFESSIONAL:", err);
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -181,24 +166,20 @@ app.get("/professional/:code", async (req, res) => {
 //////////////////////////////////////////////////////////
 
 app.get("/patients/:professionalId", auth, async (req, res) => {
-    console.log("PATIENTS HIT", req.params);
     try {
-
-        const { professionalId } = req.params;
-
         const snap = await db.collection("patients")
-            .where("professionalId", "==", professionalId)
+            .where("professionalId", "==", req.params.professionalId)
             .get();
 
-        const patients = snap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
+        const patients = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data()
         }));
 
         res.json(patients);
 
     } catch (err) {
-        console.log("ERROR PATIENTS:", err);
+        console.error("PATIENTS ERROR:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -207,61 +188,43 @@ app.get("/patients/:professionalId", auth, async (req, res) => {
 // CHAT
 //////////////////////////////////////////////////////////
 
-console.log("RUTA /chat REGISTRADA");
-
 app.post("/chat", async (req, res) => {
-    console.log("CHAT HIT", req.body);
     try {
-
         const { sessionId, message, professionalCode } = req.body;
 
-        if (!sessionId) {
-            return res.status(400).json({ reply: "SessionId requerido" });
-        }
-
         const options = {
-            mode:          "text",
-            pythonPath:    "python",
-            pythonOptions: ["-u"],
-            scriptPath:    __dirname,
+            mode: "text",
+            pythonPath: "python",
+            scriptPath: __dirname,
             args: [
-                String(sessionId),
-                String(message        || ""),
-                String(professionalCode || "")
+                sessionId,
+                message || "",
+                professionalCode || ""
             ]
         };
 
-        console.log("EJECUTANDO PYTHON...");
-
         PythonShell.run("bot.py", options)
-            .then(results => {
-                console.log("RESULTADOS PYTHON:", results);
+            .then(result => {
                 res.json({
-                    reply: results && results.length
-                        ? results.join("\n")
-                        : "Sin respuesta"
+                    reply: result?.join("\n") || "Sin respuesta"
                 });
             })
             .catch(err => {
-                console.log("ERROR PYTHON:", err);
-                res.status(500).json({ reply: err.message || "Error ejecutando IA" });
+                console.error("PYTHON ERROR:", err);
+                res.status(500).json({ reply: err.message });
             });
 
     } catch (err) {
-        console.log("ERROR CHAT:", err);
-        res.status(500).json({ reply: err.message || "Error del servidor" });
+        console.error(err);
+        res.status(500).json({ reply: err.message });
     }
 });
 
 //////////////////////////////////////////////////////////
-// STATIC FILES  ← SIEMPRE DESPUÉS DE LAS RUTAS API
+// STATIC
 //////////////////////////////////////////////////////////
 
 app.use(express.static(path.join(__dirname, "../public")));
-
-//////////////////////////////////////////////////////////
-// HOME (fallback)
-//////////////////////////////////////////////////////////
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/index.html"));
@@ -274,5 +237,5 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log("Servidor iniciado en puerto " + PORT);
+    console.log("Servidor en puerto", PORT);
 });
