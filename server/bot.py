@@ -2,18 +2,21 @@
 # BOT.PY
 # =========================================================
 
-from dotenv import load_dotenv
-load_dotenv()
-
 import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+# Solo carga dotenv si existe (local), en Render no es necesario
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from openai import OpenAI
 import json
 import os
 import firebase_admin
-
 from firebase_admin import credentials
 from firebase_admin import firestore
 
