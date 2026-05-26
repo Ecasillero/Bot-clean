@@ -1,18 +1,17 @@
 //////////////////////////////////////////////////////////
-// SERVER.JS (REVISADO Y CORREGIDO)
+// SERVER.JS
 //////////////////////////////////////////////////////////
 
 require("dotenv").config();
 
-const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const cors = require("cors");
-const path = require("path");
-const crypto = require("crypto");
+const express    = require("express");
+const bcrypt     = require("bcrypt");
+const jwt        = require("jsonwebtoken");
+const cors       = require("cors");
+const path       = require("path");
+const crypto     = require("crypto");
 const { PythonShell } = require("python-shell");
-
-const { db } = require("./firebase");
+const { db }     = require("./firebase");
 
 //////////////////////////////////////////////////////////
 // VALIDACIÓN DE VARIABLES DE ENTORNO AL ARRANQUE
@@ -23,32 +22,18 @@ if (!process.env.JWT_SECRET) {
     process.exit(1);
 }
 
-if (!process.env.FIREBASE_PRIVATE_KEY) {
-    console.error("FATAL: FIREBASE_PRIVATE_KEY no está definida. Abortando.");
-    process.exit(1);
-}
-
 //////////////////////////////////////////////////////////
 // APP
 //////////////////////////////////////////////////////////
 
 const app = express();
 
-//////////////////////////////////////////////////////////
-// MIDDLEWARE
-//////////////////////////////////////////////////////////
-
 app.use(cors());
 app.use(express.json());
-
-//////////////////////////////////////////////////////////
-// DEBUG (solo en desarrollo)
-//////////////////////////////////////////////////////////
 
 if (process.env.NODE_ENV !== "production") {
     console.log("SERVER INICIADO EN MODO DESARROLLO");
     console.log("JWT_SECRET:", process.env.JWT_SECRET ? "OK" : "MISSING");
-    console.log("FIREBASE:", !!process.env.FIREBASE_PRIVATE_KEY);
 }
 
 //////////////////////////////////////////////////////////
@@ -90,7 +75,6 @@ app.post("/register", async (req, res) => {
             return res.status(400).json({ error: "Faltan datos: name, email y password son requeridos" });
         }
 
-        // Validación básica de formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ error: "Formato de email inválido" });
@@ -110,7 +94,7 @@ app.post("/register", async (req, res) => {
 
         const hashed = await bcrypt.hash(password, 10);
 
-        // Generar professionalCode único con verificación
+        // Generar professionalCode único
         let professionalCode;
         let codeExists = true;
         while (codeExists) {
@@ -155,14 +139,12 @@ app.post("/login", async (req, res) => {
             .where("email", "==", email)
             .get();
 
-        // Mensaje genérico para no revelar si el email existe o no
         if (snap.empty) {
             return res.status(401).json({ error: "Credenciales incorrectas" });
         }
 
-        const doc = snap.docs[0];
-        const data = doc.data();
-
+        const doc   = snap.docs[0];
+        const data  = doc.data();
         const match = await bcrypt.compare(password, data.password);
 
         if (!match) {
@@ -177,8 +159,8 @@ app.post("/login", async (req, res) => {
 
         res.json({
             token,
-            professionalId: doc.id,
-            name: data.name,
+            professionalId:   doc.id,
+            name:             data.name,
             professionalCode: data.professionalCode
         });
 
@@ -189,17 +171,12 @@ app.post("/login", async (req, res) => {
 });
 
 //////////////////////////////////////////////////////////
-// PROFESSIONAL
-// NOTA: Endpoint público — no expone password
+// PROFESSIONAL — público, sin exponer password
 //////////////////////////////////////////////////////////
 
 app.get("/professional/:code", async (req, res) => {
     try {
         const { code } = req.params;
-
-        if (!code) {
-            return res.status(400).json({ error: "Código requerido" });
-        }
 
         const snap = await db.collection("professionals")
             .where("professionalCode", "==", code)
@@ -210,7 +187,7 @@ app.get("/professional/:code", async (req, res) => {
         }
 
         const doc = snap.docs[0];
-        const { password, ...safeData } = doc.data(); // ← nunca exponer el hash
+        const { password, ...safeData } = doc.data();
 
         res.json({ id: doc.id, ...safeData });
 
@@ -221,13 +198,11 @@ app.get("/professional/:code", async (req, res) => {
 });
 
 //////////////////////////////////////////////////////////
-// PATIENTS
-// Solo el profesional autenticado puede ver sus propios pacientes
+// PATIENTS — solo el profesional dueño puede ver sus pacientes
 //////////////////////////////////////////////////////////
 
 app.get("/patients/:professionalId", auth, async (req, res) => {
     try {
-        // Verificar que el usuario autenticado es el dueño del recurso
         if (req.user.id !== req.params.professionalId) {
             return res.status(403).json({ error: "Acceso no autorizado a estos pacientes" });
         }
@@ -236,10 +211,7 @@ app.get("/patients/:professionalId", auth, async (req, res) => {
             .where("professionalId", "==", req.params.professionalId)
             .get();
 
-        const patients = snap.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-        }));
+        const patients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         res.json(patients);
 
@@ -250,10 +222,10 @@ app.get("/patients/:professionalId", auth, async (req, res) => {
 });
 
 //////////////////////////////////////////////////////////
-// CHAT — Ejecuta bot.py con PythonShell
+// CHAT — público (paciente anónimo), valida professionalCode
 //////////////////////////////////////////////////////////
 
-app.post("/chat", auth, async (req, res) => {
+app.post("/chat", async (req, res) => {
     try {
         const { sessionId, message, professionalCode } = req.body;
 
@@ -261,18 +233,25 @@ app.post("/chat", auth, async (req, res) => {
             return res.status(400).json({ reply: "sessionId es requerido" });
         }
 
-        const options = {
-            mode: "text",
+        if (!professionalCode) {
+            return res.status(400).json({ reply: "professionalCode es requerido" });
+        }
+
+        // Validar que el código de profesional existe
+        const snap = await db.collection("professionals")
+            .where("professionalCode", "==", professionalCode)
+            .get();
+
+        if (snap.empty) {
+            return res.status(403).json({ reply: "Código de profesional inválido" });
+        }
+
+        const result = await PythonShell.run("bot.py", {
+            mode:       "text",
             pythonPath: "python3",
             scriptPath: __dirname,
-            args: [
-                sessionId,
-                message || "",
-                professionalCode || ""
-            ]
-        };
-
-        const result = await PythonShell.run("bot.py", options);
+            args:       [sessionId, message || "", professionalCode]
+        });
 
         return res.json({
             reply: result?.join("\n") || "Sin respuesta del bot"
@@ -295,7 +274,7 @@ app.get("/", (req, res) => {
 });
 
 //////////////////////////////////////////////////////////
-// 404 — Ruta no encontrada
+// 404
 //////////////////////////////////////////////////////////
 
 app.use((req, res) => {

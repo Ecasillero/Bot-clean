@@ -5,9 +5,9 @@ async function register() {
     const password = document.getElementById("password")?.value;
 
     const r = await fetch("/register", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
+        body:    JSON.stringify({ name, email, password })
     });
 
     const data = await r.json();
@@ -26,9 +26,9 @@ async function login() {
     const password = document.getElementById("password")?.value;
 
     const r = await fetch("/login", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body:    JSON.stringify({ email, password })
     });
 
     const data = await r.json();
@@ -46,6 +46,12 @@ async function login() {
 
 // DASHBOARD
 if (window.location.pathname.includes("dashboard")) {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location = "login.html";
+    }
+
     const welcome = document.getElementById("welcome");
     const link    = document.getElementById("link");
 
@@ -90,7 +96,6 @@ async function loadPatients() {
     const div = document.getElementById("patients");
     if (!div) return;
 
-    // Mostrar loading
     div.innerHTML = `
         <div class="loading-row">
             <span class="spinner"></span>
@@ -105,9 +110,18 @@ async function loadPatients() {
         const prof     = await fetch("/professional/" + professionalCode);
         const profData = await prof.json();
 
+        if (!profData.id) {
+            div.innerHTML = "<p style='color:#f87171; font-size:14px;'>Sesión inválida. Por favor inicia sesión de nuevo.</p>";
+            return;
+        }
+
         const r = await fetch("/patients/" + profData.id, {
-            headers: { Authorization: token }
+            headers: { Authorization: "Bearer " + token }
         });
+
+        if (!r.ok) {
+            throw new Error("Error al obtener pacientes: " + r.status);
+        }
 
         const patients = await r.json();
 
@@ -174,22 +188,34 @@ function togglePatient(i) {
 
 // CHAT IA
 if (window.location.pathname.includes("evaluation")) {
+
     const params           = new URLSearchParams(window.location.search);
     const professionalCode = params.get("code");
     const sessionId        = crypto.randomUUID();
     const chat             = document.getElementById("chat");
     const input            = document.getElementById("message");
 
+    // DEBUG — ver qué llega en la URL
+    console.log("=== EVALUATION INIT ===");
+    console.log("URL completa:", window.location.href);
+    console.log("professionalCode:", professionalCode);
+    console.log("sessionId:", sessionId);
+
+    if (!professionalCode) {
+        console.error("ERROR: No hay ?code= en la URL");
+        document.body.innerHTML = "<p style='color:#f87171; padding:20px;'>Enlace inválido. Solicita uno nuevo a tu profesional.</p>";
+    }
+
     function addMessage(text, sender) {
-        const div      = document.createElement("div");
-        div.className  = "message " + sender;
-        div.innerText  = text;
+        const div     = document.createElement("div");
+        div.className = "message " + sender;
+        div.innerText = text;
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
     }
 
     function showTyping() {
-        const t = document.createElement("div");
+        const t     = document.createElement("div");
         t.className = "typing-indicator";
         t.id        = "typing";
         t.innerHTML = "<span></span><span></span><span></span>";
@@ -208,22 +234,24 @@ if (window.location.pathname.includes("evaluation")) {
 
         addMessage(text, "user");
         input.value = "";
-
         showTyping();
+
+        console.log("sendMessage →", { sessionId, message: text, professionalCode });
 
         try {
             const res = await fetch("/chat", {
-                method: "POST",
+                method:  "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, message: text, professionalCode })
+                body:    JSON.stringify({ sessionId, message: text, professionalCode })
             });
 
+            console.log("sendMessage response status:", res.status);
             const data = await res.json();
             hideTyping();
             addMessage(data.reply, "bot");
         } catch (err) {
             hideTyping();
-            console.log(err);
+            console.error("sendMessage ERROR:", err);
             alert("Error enviando mensaje");
         }
     };
@@ -248,39 +276,54 @@ if (window.location.pathname.includes("evaluation")) {
 
             showTyping();
 
+            console.log("startEvaluation →", { sessionId, message: "acepto", professionalCode });
+
             const res = await fetch("/chat", {
-                method: "POST",
+                method:  "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, message: "acepto", professionalCode })
+                body:    JSON.stringify({ sessionId, message: "acepto", professionalCode })
             });
 
+            console.log("startEvaluation response status:", res.status);
             const data = await res.json();
             hideTyping();
             addMessage(data.reply, "bot");
         } catch (err) {
             hideTyping();
-            console.log(err);
+            console.error("startEvaluation ERROR:", err);
             alert("Error iniciando evaluacion");
         }
     };
 
     window.addEventListener("load", async () => {
+        if (!professionalCode) {
+            console.error("load: professionalCode vacío, abortando fetch");
+            return;
+        }
+
+        console.log("load → enviando 'start' al chat");
+        console.log("Payload:", { sessionId, message: "start", professionalCode });
+
         try {
             const res = await fetch("/chat", {
-                method: "POST",
+                method:  "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, message: "start", professionalCode })
+                body:    JSON.stringify({ sessionId, message: "start", professionalCode })
             });
 
+            console.log("load response status:", res.status);
+
             if (!res.ok) {
-                throw new Error("HTTP ERROR " + res.status);
+                const errData = await res.json().catch(() => ({}));
+                console.error("load error body:", errData);
+                throw new Error("HTTP ERROR " + res.status + " — " + (errData.reply || errData.error || ""));
             }
 
             const data = await res.json();
             addMessage(data.reply, "bot");
             document.getElementById("consentBox").style.display = "block";
         } catch (err) {
-            console.error("ERROR:", err);
+            console.error("load ERROR:", err);
             alert(err.message);
         }
     });
