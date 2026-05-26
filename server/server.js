@@ -10,9 +10,10 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
 const crypto = require("crypto");
-const { PythonShell } = require("python-shell");
+// ❌ PythonShell DESACTIVADO (causa #1 de 500 en Render)
+// const { PythonShell } = require("python-shell");
 
-const { db } = require("./firebase"); // ✅ FIX IMPORT
+const { db } = require("./firebase");
 
 const app = express();
 
@@ -29,10 +30,10 @@ app.use(express.json());
 
 console.log("SERVER INICIADO");
 console.log("JWT:", process.env.JWT_SECRET ? "OK" : "MISSING");
-console.log("FIREBASE:", !!process.env.FIREBASE_PRIVATE_KEY);
+console.log("FIREBASE KEY:", !!process.env.FIREBASE_PRIVATE_KEY);
 
 //////////////////////////////////////////////////////////
-// AUTH MIDDLEWARE
+// AUTH
 //////////////////////////////////////////////////////////
 
 function auth(req, res, next) {
@@ -185,37 +186,24 @@ app.get("/patients/:professionalId", auth, async (req, res) => {
 });
 
 //////////////////////////////////////////////////////////
-// CHAT
+// CHAT (TEMPORAL SIN PYTHON - EVITA 500)
 //////////////////////////////////////////////////////////
 
 app.post("/chat", async (req, res) => {
     try {
-        const { sessionId, message, professionalCode } = req.body;
+        const { sessionId, message } = req.body;
 
-        const options = {
-            mode: "text",
-            pythonPath: "python",
-            scriptPath: __dirname,
-            args: [
-                sessionId,
-                message || "",
-                professionalCode || ""
-            ]
-        };
+        if (!sessionId) {
+            return res.status(400).json({ reply: "sessionId requerido" });
+        }
 
-        PythonShell.run("bot.py", options)
-            .then(result => {
-                res.json({
-                    reply: result?.join("\n") || "Sin respuesta"
-                });
-            })
-            .catch(err => {
-                console.error("PYTHON ERROR:", err);
-                res.status(500).json({ reply: err.message });
-            });
+        // 🔥 RESPUESTA SIMPLE (EVITA CRASH EN RENDER)
+        return res.json({
+            reply: `IA activa: recibí -> ${message}`
+        });
 
     } catch (err) {
-        console.error(err);
+        console.error("CHAT ERROR:", err);
         res.status(500).json({ reply: err.message });
     }
 });
@@ -228,6 +216,17 @@ app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
+//////////////////////////////////////////////////////////
+// ERROR HANDLER (IMPORTANTE)
+//////////////////////////////////////////////////////////
+
+app.use((err, req, res, next) => {
+    console.error("🔥 ERROR GLOBAL:", err);
+    res.status(500).json({
+        error: err.message
+    });
 });
 
 //////////////////////////////////////////////////////////
