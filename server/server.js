@@ -12,7 +12,7 @@ const path       = require("path");
 const crypto     = require("crypto");
 const { PythonShell } = require("python-shell");
 
-const db = require("./firebase");
+const { db } = require("./firebase");
 console.log("Firebase cargado:", !!db);
 
 const app = express();
