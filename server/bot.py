@@ -18,16 +18,33 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 
 # =========================================================
-# FIREBASE
+# FIREBASE — funciona local y en Render
 # =========================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-cred = credentials.Certificate(
-    os.path.join(BASE_DIR, "firebase-key.json")
-)
-
 if not firebase_admin._apps:
+    private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+
+    if private_key:
+        # Render / producción: variables de entorno
+        cred = credentials.Certificate({
+            "type":                        "service_account",
+            "project_id":                  os.getenv("FIREBASE_PROJECT_ID"),
+            "private_key_id":              os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
+            "private_key":                 private_key.replace("\\n", "\n"),
+            "client_email":                os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "client_id":                   "",
+            "auth_uri":                    "https://accounts.google.com/o/oauth2/auth",
+            "token_uri":                   "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url":        ""
+        })
+    else:
+        # Local: archivo JSON
+        key_path = os.path.join(BASE_DIR, "serviceAccount.json")
+        cred = credentials.Certificate(key_path)
+
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -245,25 +262,21 @@ def responder(session_id, mensaje, professional_code):
 
         if estado["indice"] >= len(DIMENSIONES):
 
-            total        = sum(estado["scores"].values())
-            nivel        = clasificar(total)
-            orientacion  = generar_orientacion(nivel)
-            profesional  = get_professional(professional_code)
+            total       = sum(estado["scores"].values())
+            nivel       = clasificar(total)
+            orientacion = generar_orientacion(nivel)
+            profesional = get_professional(professional_code)
 
             db.collection("patients").add({
-                # Datos del profesional
                 "professionalId":   profesional["id"],
                 "professionalName": profesional["name"],
                 "professionalCode": profesional["code"],
-
-                # Datos del paciente
-                "patientName": estado["patientName"],
-                "total":       total,
-                "result":      {"nivel": nivel},
-                "scores":      estado["scores"],
-                "respuestas":  estado["respuestas"],
-
-                "createdAt": firestore.SERVER_TIMESTAMP
+                "patientName":      estado["patientName"],
+                "total":            total,
+                "result":           {"nivel": nivel},
+                "scores":           estado["scores"],
+                "respuestas":       estado["respuestas"],
+                "createdAt":        firestore.SERVER_TIMESTAMP
             })
 
             estado["modo"] = "finalizado"
@@ -294,11 +307,9 @@ def responder(session_id, mensaje, professional_code):
 # =========================================================
 
 if __name__ == "__main__":
-
     session_id        = sys.argv[1]
     mensaje           = sys.argv[2]
     professional_code = sys.argv[3] if len(sys.argv) > 3 else ""
 
     respuesta = responder(session_id, mensaje, professional_code)
-
     print(respuesta)
