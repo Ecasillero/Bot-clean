@@ -1,0 +1,150 @@
+body {
+  background: #0f172a;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  color: white;
+}
+
+/* CARD LOGIN */
+.card {
+  background: #1e293b;
+  padding: 35px;
+  border-radius: 20px;
+  width: 380px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* INPUTS MÁS GRANDES */
+input {
+  width: 100%;
+  padding: 16px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #0f172a;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+/* BOTONES MÁS PEQUEÑOS */
+button {
+  width: 100%;
+  padding: 10px;   /* más pequeño */
+  margin-top: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #2563eb;
+  transform: scale(1.02);
+}
+
+/* CHAT */
+.chat-container {
+  width: 520px;
+  height: 720px;
+  background: #1e293b;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+/* MENSAJES */
+#chat {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.message {
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+/* BOT */
+.bot {
+  background: #334155;
+  align-self: flex-start;
+}
+
+/* USER */
+.user {
+  background: #2563eb;
+  align-self: flex-end;
+  text-align: right;
+}
+
+/* INPUT AREA */
+.input-area {
+  display: flex;
+  padding: 12px;
+  gap: 10px;
+}
+
+/* INPUT CHAT MÁS GRANDE */
+.input-area input {
+  flex: 1;
+  padding: 18px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+/* BOTÓN CHAT MÁS PEQUEÑO */
+.input-area button {
+  width: 90px;
+  padding: 10px;
+}
+
+/* CONSENTIMIENTO */
+.consent-box {
+  padding: 18px;
+  border-top: 1px solid #334155;
+  background: #172033;
+}
+
+.consent-box label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.consent-box input {
+  width: auto;
+  margin: 0;
+}
+
+/* 🔵 LOADER */
+.loading {
+  display: none;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #93c5fd;
+}
+
+.loading::after {
+  content: " .";
+  animation: dots 1s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: "."; }
+  33% { content: ".."; }
+  66% { content: "..."; }
+  100% { content: "."; }
+}

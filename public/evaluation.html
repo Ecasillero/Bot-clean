@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Evaluación</title>
+
+<link
+rel="stylesheet"
+href="styleS.css">
+
+</head>
+
+<body>
+
+<div class="chat-container">
+
+<div id="chat"></div>
+
+<div
+id="consentBox"
+class="consent-box"
+style="display:none;">
+
+<label>
+
+<input
+type="checkbox"
+id="consent">
+
+Acepto continuar con la evaluación emocional.
+
+</label>
+
+<button
+type="button"
+onclick="startEvaluation()">
+
+Continuar
+
+</button>
+
+</div>
+
+<div
+class="input-area"
+id="inputArea"
+style="display:none;">
+
+<input
+id="message"
+type="text"
+autocomplete="off"
+placeholder="Escribe aquí">
+
+<button
+type="button"
+onclick="sendMessage()">
+
+Enviar
+
+</button>
+
+</div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

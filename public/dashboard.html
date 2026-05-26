@@ -1,0 +1,174 @@
+
+  <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+
+<link rel="stylesheet" href="stylees.css">
+
+<style>
+/* ===== CARD ===== */
+.patient-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+
+/* HEADER */
+.patient-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: 0.2s;
+}
+
+.patient-header:hover {
+  background: #f9fafb;
+}
+
+.patient-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+}
+
+/* BADGE */
+.nivel-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.nivel-badge.minima { background: #fef9c3; color: #92400e; }
+.nivel-badge.moderada { background: #ffedd5; color: #9a3412; }
+.nivel-badge.grave { background: #fee2e2; color: #991b1b; }
+.nivel-badge.ausente { background: #dcfce7; color: #166534; }
+
+/* ARROW */
+.patient-arrow {
+  transition: 0.3s;
+  color: #888;
+}
+
+.patient-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* DETAIL */
+.patient-detail {
+  display: none;
+  padding: 16px 18px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+.patient-detail.open {
+  display: block;
+}
+
+/* CLOSE BUTTON */
+.close-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.close-btn:hover {
+  background: #dc2626;
+}
+
+/* RESPUESTAS */
+.respuesta-item {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #93c5fd;
+  border-radius: 8px;
+}
+
+.respuesta-item .pregunta {
+  font-size: 12px;
+  color: #666;
+}
+
+.respuesta-item .respuesta {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.respuesta-item .score {
+  font-size: 11px;
+  color: #999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>Dashboard Profesional</h1>
+  <p id="welcome"></p>
+
+  <input id="link" readonly>
+  <button onclick="copyLink()">Copiar enlace</button>
+
+  <hr>
+
+  <button onclick="loadPatients()">Cargar pacientes</button>
+
+  <div id="patients"></div>
+</div>
+
+<script>
+/* ==============================
+   ABRIR SOLO UNO
+============================== */
+function togglePatient(card){
+
+  document.querySelectorAll(".patient-detail")
+    .forEach(d => d.classList.remove("open"));
+
+  document.querySelectorAll(".patient-arrow")
+    .forEach(a => a.classList.remove("open"));
+
+  const detail = card.querySelector(".patient-detail");
+  const arrow = card.querySelector(".patient-arrow");
+
+  detail.classList.toggle("open");
+  arrow.classList.toggle("open");
+}
+
+/* ==============================
+   CERRAR
+============================== */
+document.addEventListener("click", (e)=>{
+  if(e.target.classList.contains("close-btn")){
+    const detail = e.target.closest(".patient-detail");
+    const arrow = detail.parentElement.querySelector(".patient-arrow");
+
+    detail.classList.remove("open");
+    arrow.classList.remove("open");
+  }
+});
+</script>
+
+<script src="app.js"></script>
+
+</body>
+</html>

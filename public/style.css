@@ -1,0 +1,145 @@
+body {
+  background: #0f172a;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  color: white;
+}
+
+/* CARD LOGIN */
+.card {
+  background: #1e293b;
+  padding: 36px;
+  border-radius: 18px;
+  width: 380px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* INPUTS MÁS GRANDES Y SUAVES */
+input {
+  width: 100%;
+  padding: 16px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #0f172a;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+/* BOTÓN MÁS PEQUEÑO Y LIMPIO */
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #2563eb;
+  transform: scale(1.02);
+}
+
+/* CHAT CONTAINER */
+.chat-container {
+  width: 520px;
+  height: 720px;
+  background: #1e293b;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+}
+
+/* CHAT ZONE */
+#chat {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* MENSAJES */
+.message {
+  padding: 12px 14px;
+  margin-top: 10px;
+  border-radius: 14px;
+  max-width: 75%;
+  word-wrap: break-word;
+  font-size: 14px;
+}
+
+/* BOT */
+.bot {
+  background: #334155;
+  align-self: flex-start;
+}
+
+/* USER */
+.user {
+  background: #2563eb;
+  align-self: flex-end;
+  text-align: right;
+}
+
+/* INPUT AREA */
+.input-area {
+  display: flex;
+  padding: 12px;
+  gap: 10px;
+  border-top: 1px solid #334155;
+}
+
+/* INPUT CHAT MÁS GRANDE */
+.input-area input {
+  flex: 1;
+  padding: 16px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+/* BOTÓN CHAT MÁS PEQUEÑO */
+.input-area button {
+  width: 90px;
+  padding: 10px;
+}
+
+/* CONSENTIMIENTO */
+.consent-box {
+  padding: 18px;
+  border-top: 1px solid #334155;
+  background: #172033;
+}
+
+.consent-box label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.consent-box input {
+  width: auto;
+  margin: 0;
+}
+
+/* SCROLL MÁS SUAVE */
+#chat::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chat::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
