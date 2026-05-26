@@ -143,3 +143,21 @@ button:hover {
   background: #334155;
   border-radius: 10px;
 }
+
+/* Animación de los tres puntos */
+.loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+}
+
+.message.bot.loading {
+    opacity: 0.6;
+    font-style: italic;
+}
